@@ -1,0 +1,60 @@
+version: '3.1'
+
+services:
+  springboot-mongo:
+    build: .
+    restart: always
+    container_name: springboot-mongo
+    ports:
+      - 8080:8080
+    working_dir: /opt/app
+    depends_on:
+      - kafka
+
+  zookeeper:
+    image: zookeeper
+    container_name: zookeeper1
+    networks:
+      - kafka-net
+    ports:
+      - 2181:2181
+    restart: unless-stopped
+    volumes:
+      - zookeeper-data:/tmp/data/zookeeper
+      - zookeeper-data-log:/tmp/data-log
+
+  kafka:
+    image: ches/kafka
+    container_name: kafka1
+    networks:
+      - kafka-net
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+    restart: always
+    environment:
+      # Use container hostname support of the default Compose network
+      ZOOKEEPER_IP: zookeeper
+      KAFKA_BROKER_ID: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_NUM_PARTITIONS: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CREATE_TOPICS: "acxTopic:1:1"
+#      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_HOST_NAME: 192.168.101.201
+#      KAFKA_ADVERTISED_HOST_NAME: kafka
+#      JAVA_RMI_SERVER_HOSTNAME: kafka
+    volumes:
+      - kafka-data:/tmp/data
+      - kafka-logs:/tmp/logs
+
+
+networks:
+  kafka-net:
+
+volumes:
+  kafka-data:
+  kafka-logs:
+  zookeeper-data:
+  zookeeper-data-log:

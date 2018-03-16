@@ -1,20 +1,43 @@
 version: '3.1'
 
 services:
+
+  restfulservice:
+    build: ./
+    container_name: restservice1
+    networks:
+      - kafka-net
+    ports:
+      - 8081:8080
+    depends_on:
+      - kafka
+
+  mongo:
+    image: mongo
+    container_name: mongo1
+    networks:
+      - kafka-net
+    ports:
+      - 27017:27017
+    volumes:
+      - /data/db:/data/db
+
   zookeeper:
-    image: zookeeper
+    image: wurstmeister/zookeeper
     container_name: zookeeper1
     networks:
       - kafka-net
     ports:
       - 2181:2181
     restart: unless-stopped
+    depends_on:
+      - mongo
     volumes:
-      - zookeeper-data:/tmp/data/zookeeper
-      - zookeeper-data-log:/tmp/data-log
+      - zookeeper-data:/data/zookeeper
+      - zookeeper-data-log:/data/zookeeper/log
 
   kafka:
-    image: ches/kafka
+    image: wurstmeister/kafka
     container_name: kafka1
     networks:
       - kafka-net
@@ -22,19 +45,18 @@ services:
       - zookeeper
     ports:
       - 9092:9092
+      - 29092:29092
     restart: always
     environment:
       # Use container hostname support of the default Compose network
       ZOOKEEPER_IP: zookeeper
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_HOST_NAME: kafka
       KAFKA_BROKER_ID: 1
       KAFKA_DEFAULT_REPLICATION_FACTOR: 1
       KAFKA_NUM_PARTITIONS: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_CREATE_TOPICS: "acxTopic:1:1"
-#      KAFKA_ADVERTISED_HOST_NAME: 172.17.33.215
-#      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_ADVERTISED_HOST_NAME: 192.168.1.105
-#      KAFKA_ADVERTISED_HOST_NAME: kafka
 #      JAVA_RMI_SERVER_HOSTNAME: kafka
     volumes:
       - kafka-data:/tmp/data

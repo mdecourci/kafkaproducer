@@ -1,0 +1,6 @@
+FROM alpine
+
+ENV MESSAGE "This is default message"
+
+CMD echo "hello world"
+CMD echo "My message is "${MESSAGE}

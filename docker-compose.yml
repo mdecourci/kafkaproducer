@@ -2,7 +2,90 @@ version: '2'
 
 services:
 
-  message:
-    image: image1
+  producer:
+    image: 984719364665.dkr.ecr.eu-west-1.amazonaws.com/producer
+    ports:
+      - 8081:8080
+    links:
+      - kafka:kafka
     environment:
-     MY_MSG: "goodbye"
+      KAFKA_PORT: 9092
+      KAFKA_PRODUCER_HOST: wget -t3 -T2 -qO-  http://169.254.169.254/latest/meta-data/local-ipv4
+    logging:
+            driver : awslogs
+            options:
+                awslogs-group        : "mdc-test"
+                awslogs-region       : "eu-west-1"
+                awslogs-stream-prefix: "producer"
+
+  consumer:
+    image: 984719364665.dkr.ecr.eu-west-1.amazonaws.com/consumer
+    ports:
+      - 8082:8080
+    links:
+      - kafka:kafka
+      - mongo:mongo
+    environment:
+      KAFKA_PORT: 9092
+      KAFKA_CONSUMER_HOST: wget -t3 -T2 -qO-  http://169.254.169.254/latest/meta-data/local-ipv4
+    logging:
+            driver : awslogs
+            options:
+                awslogs-group        : "mdc-test"
+                awslogs-region       : "eu-west-1"
+                awslogs-stream-prefix: "consumer"
+
+  mongo:
+    image: mongo
+    ports:
+      - 27017:27017
+    logging:
+            driver : awslogs
+            options:
+                awslogs-group        : "mdc-test"
+                awslogs-region       : "eu-west-1"
+                awslogs-stream-prefix: "mongo"
+    volumes:
+      - /data/db:/data/db
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - 2181:2181
+    logging:
+            driver : awslogs
+            options:
+                awslogs-group        : "mdc-test"
+                awslogs-region       : "eu-west-1"
+                awslogs-stream-prefix: "zookeeper"
+    volumes:
+      - zookeeper-data:/data/zookeeper
+      - zookeeper-data-log:/data/zookeeper/log
+
+  kafka:
+    image: wurstmeister/kafka
+    ports:
+      - 9092:9092
+      - 29092:29092
+    links:
+      - zookeeper:zookeeper
+    environment:
+      # Use container hostname support of the default Compose network
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      HOSTNAME_COMMAND: wget -t3 -T2 -qO-  http://169.254.169.254/latest/meta-data/local-ipv4
+#      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_BROKER_ID: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_NUM_PARTITIONS: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CREATE_TOPICS: "acxTopic:1:1"
+#      JAVA_RMI_SERVER_HOSTNAME: kafka
+    logging:
+            driver : awslogs
+            options:
+                awslogs-group        : "mdc-test"
+                awslogs-region       : "eu-west-1"
+                awslogs-stream-prefix: "kafka"
+    volumes:
+      - kafka-data:/tmp/data
+      - kafka-logs:/tmp/logs
